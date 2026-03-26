@@ -79,7 +79,7 @@ for _, name in ipairs(LimitedExecutors) do
     end
 end
 
-local repo = "https://raw.githubusercontent.com/gix314/arigato/refs/heads/main/Utilities/"
+local repo = "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/"
 local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
 local ThemeManager = loadstring(game:HttpGet(repo .. "ThemeManager.lua"))()
 local SaveManager = loadstring(game:HttpGet(repo .. "SaveManager.lua"))()
@@ -1873,8 +1873,20 @@ local function GetWeaponsByType()
     local available = {}
     local seen = {}
     local enabledTypes = Options.SelectedWeaponType.Value or {}
+    local hasEnabledType = false
     local char = GetCharacter()
 
+    for _, enabled in pairs(enabledTypes) do
+        if enabled then
+            hasEnabledType = true
+            break
+        end
+    end
+
+    if not hasEnabledType then
+        return available
+    end
+    
     local containers = {Plr.Backpack}
     if char then table.insert(containers, char) end
 
@@ -1883,31 +1895,37 @@ local function GetWeaponsByType()
             if tool:IsA("Tool") then
                 local toolType = GetToolTypeFromModule(tool.Name)
                 local cleanName = Clean(tool.Name)
-
+                
                 if enabledTypes[toolType] and not seen[cleanName] then
-                    table.insert(available, tool.Name)
                     seen[cleanName] = true
+                    table.insert(available, tool.Name)
                 end
             end
         end
     end
 
     table.sort(available, function(a, b)
-        return Clean(a) < Clean(b)
+        return a:lower() < b:lower()
     end)
 
     return available
 end
 
-local function FindToolByName(toolName)
+local function FindWeaponToolByName(toolName)
     if not toolName or toolName == "" then return nil end
 
-    local cleanTarget = Clean(toolName)
     local char = GetCharacter()
     local containers = {Plr.Backpack}
     if char then table.insert(containers, char) end
 
+    local cleanTarget = Clean(toolName)
+
     for _, container in ipairs(containers) do
+        local exact = container:FindFirstChild(toolName)
+        if exact and exact:IsA("Tool") then
+            return exact
+        end
+
         for _, child in ipairs(container:GetChildren()) do
             if child:IsA("Tool") and Clean(child.Name) == cleanTarget then
                 return child
@@ -1920,115 +1938,95 @@ end
 
 local function IsWeaponEquipped(toolName)
     local char = GetCharacter()
-    if not char or not toolName or toolName == "" then return false end
+    if not char then return false end
 
-    local cleanTarget = Clean(toolName)
-    for _, child in ipairs(char:GetChildren()) do
-        if child:IsA("Tool") and Clean(child.Name) == cleanTarget then
-            return true
-        end
-    end
-
-    return false
+    local equipped = char:FindFirstChildOfClass("Tool")
+    return equipped and Clean(equipped.Name) == Clean(toolName) or false
 end
 
 local function UpdateWeaponRotation(forceRefresh)
     local weaponList = GetWeaponsByType()
-
-    if #weaponList == 0 then
-        Shared.ActiveWeap = ""
-        Shared.WeapRotationIdx = 1
-        return
-    end
-
-    local activeExists = false
-    for i, name in ipairs(weaponList) do
-        if Clean(name) == Clean(Shared.ActiveWeap or "") then
-            Shared.WeapRotationIdx = i
-            activeExists = true
-            break
-        end
-    end
-
-    if not activeExists or forceRefresh then
-        Shared.WeapRotationIdx = math.clamp(Shared.WeapRotationIdx, 1, #weaponList)
-        Shared.ActiveWeap = weaponList[Shared.WeapRotationIdx]
-        Shared.LastWRSwitch = tick()
-        return
+    
+    if #weaponList == 0 then 
+        Shared.ActiveWeap = "" 
+        return 
     end
 
     local switchDelay = Options.SwitchWeaponCD.Value or 4
-    if tick() - (Shared.LastWRSwitch or 0) >= switchDelay then
-        Shared.WeapRotationIdx = Shared.WeapRotationIdx + 1
-        if Shared.WeapRotationIdx > #weaponList then Shared.WeapRotationIdx = 1 end
+    local shouldRotate = forceRefresh or Shared.ActiveWeap == "" or (tick() - Shared.LastWRSwitch >= switchDelay)
 
+    if shouldRotate then
+        if forceRefresh or Shared.ActiveWeap == "" then
+            Shared.WeapRotationIdx = 1
+        else
+            Shared.WeapRotationIdx = Shared.WeapRotationIdx + 1
+            if Shared.WeapRotationIdx > #weaponList then Shared.WeapRotationIdx = 1 end
+        end
+        
         Shared.ActiveWeap = weaponList[Shared.WeapRotationIdx]
         Shared.LastWRSwitch = tick()
     end
-end
 
-local function ForceEquipByName(toolName)
-    if not toolName or toolName == "" then return false end
-
-    local char = GetCharacter()
-    local hum = char and char:FindFirstChildOfClass("Humanoid")
-    if not hum then return false end
-
-    if IsWeaponEquipped(toolName) then
-        return true
-    end
-
-    local equippedDifferentTool = false
-    for _, child in ipairs(char:GetChildren()) do
-        if child:IsA("Tool") and Clean(child.Name) ~= Clean(toolName) then
-            equippedDifferentTool = true
+    local exists = false
+    for idx, name in ipairs(weaponList) do
+        if Clean(name) == Clean(Shared.ActiveWeap) then
+            exists = true
+            Shared.WeapRotationIdx = idx
+            Shared.ActiveWeap = name
             break
         end
     end
-
-    if equippedDifferentTool then
-        pcall(function()
-            hum:UnequipTools()
-        end)
-        task.wait(0.05)
+    
+    if not exists then
+        Shared.WeapRotationIdx = 1
+        Shared.ActiveWeap = weaponList[1]
     end
-
-    for attempt = 1, 6 do
-        local tool = FindToolByName(toolName)
-
-        if IsWeaponEquipped(toolName) then
-            return true
-        end
-
-        if Remotes.EquipWeapon then
-            pcall(function()
-                Remotes.EquipWeapon:FireServer("Equip", toolName)
-            end)
-        end
-
-        if tool and tool.Parent ~= char then
-            pcall(function()
-                hum:EquipTool(tool)
-            end)
-        elseif tool and tool.Parent == char then
-            return true
-        end
-
-        task.wait(0.12)
-
-        if IsWeaponEquipped(toolName) then
-            return true
-        end
-    end
-
-    return IsWeaponEquipped(toolName)
 end
 
 local function EquipWeapon(forceRefresh)
     UpdateWeaponRotation(forceRefresh)
     if Shared.ActiveWeap == "" then return false end
 
-    return ForceEquipByName(Shared.ActiveWeap)
+    if IsWeaponEquipped(Shared.ActiveWeap) then
+        return true
+    end
+    
+    local success = false
+
+    for attempt = 1, 4 do
+        local char = GetCharacter()
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if not hum then break end
+
+        local tool = FindWeaponToolByName(Shared.ActiveWeap)
+        if tool then
+            pcall(function()
+                if Remotes.EquipWeapon then
+                    Remotes.EquipWeapon:FireServer("Equip", tool.Name)
+                end
+            end)
+
+            task.wait(0.05)
+
+            if not IsWeaponEquipped(tool.Name) then
+                pcall(function()
+                    hum:EquipTool(tool)
+                end)
+            end
+
+            task.wait(0.08)
+
+            if IsWeaponEquipped(tool.Name) then
+                Shared.ActiveWeap = tool.Name
+                success = true
+                break
+            end
+        end
+
+        task.wait(0.08)
+    end
+
+    return success
 end
 
 local function CheckObsHaki()
@@ -6076,8 +6074,9 @@ Options.SelectedWeaponType:OnChanged(function()
     Shared.ActiveWeap = ""
     Shared.WeapRotationIdx = 1
     Shared.LastWRSwitch = 0
+
     task.spawn(function()
-        task.wait(0.05)
+        task.wait()
         EquipWeapon(true)
     end)
 end)
@@ -6312,51 +6311,6 @@ task.spawn(function()
                 PityLabel:SetText(string.format("<b>Pity:</b> %d/%d", current or 0, max or 25))
             end
         end)
-    end
-end)
-
-Plr.Backpack.ChildAdded:Connect(function(child)
-    if child:IsA("Tool") then
-        task.spawn(function()
-            task.wait(0.1)
-            EquipWeapon(true)
-        end)
-    end
-end)
-
-Plr.CharacterAdded:Connect(function(newChar)
-    Char = newChar
-    Shared.ActiveWeap = ""
-    Shared.WeapRotationIdx = 1
-    Shared.LastWRSwitch = 0
-
-    task.spawn(function()
-        local hum = newChar:WaitForChild("Humanoid", 10)
-        if hum then
-            task.wait(0.2)
-            EquipWeapon(true)
-        end
-    end)
-end)
-
-task.spawn(function()
-    while getgenv().RowletDev_Running do
-        task.wait(0.5)
-
-        local selectedTypes = Options.SelectedWeaponType and Options.SelectedWeaponType.Value or {}
-        local hasSelectedType = false
-        for _, enabled in pairs(selectedTypes) do
-            if enabled then
-                hasSelectedType = true
-                break
-            end
-        end
-
-        if hasSelectedType and Shared.ActiveWeap ~= "" and not IsBusy() then
-            if not IsWeaponEquipped(Shared.ActiveWeap) then
-                EquipWeapon(false)
-            end
-        end
     end
 end)
 
