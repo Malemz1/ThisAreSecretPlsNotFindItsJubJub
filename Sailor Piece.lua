@@ -1924,50 +1924,38 @@ local function RefreshWeaponDropdown()
     end
 end
 
-local function GetWeaponsByType()
-    local available = {}
+local function GetSelectedWeapon()
     local selectedWeapon = Options.SelectedWeapon and Options.SelectedWeapon.Value or nil
-    local enabledTypes = Options.SelectedWeaponType.Value or {}
-    local char = GetCharacter()
-    
-    local containers = {Plr.Backpack}
-    if char then table.insert(containers, char) end
+    if not selectedWeapon or selectedWeapon == "" then
+        return nil
+    end
 
-    if selectedWeapon and selectedWeapon ~= "" then
-        for _, container in ipairs(containers) do
-            local tool = container:FindFirstChild(selectedWeapon)
-            if tool and tool:IsA("Tool") then
-                return {selectedWeapon}
-            end
-        end
+    local char = GetCharacter()
+    local containers = {Plr.Backpack}
+    if char then
+        table.insert(containers, char)
     end
 
     for _, container in ipairs(containers) do
-        for _, tool in ipairs(container:GetChildren()) do
-            if tool:IsA("Tool") then
-                local toolType = GetToolTypeFromModule(tool.Name)
-                
-                if enabledTypes[toolType] and not table.find(available, tool.Name) then
-                    table.insert(available, tool.Name)
-                end
-            end
+        local tool = container:FindFirstChild(selectedWeapon)
+        if tool and tool:IsA("Tool") then
+            return selectedWeapon
         end
     end
 
-    table.sort(available)
-    return available
+    return nil
 end
 
 local function UpdateWeaponRotation()
-    local weaponList = GetWeaponsByType()
-    
-    if #weaponList == 0 then 
-        Shared.ActiveWeap = "" 
-        return 
+    local selectedWeapon = GetSelectedWeapon()
+
+    if not selectedWeapon then
+        Shared.ActiveWeap = ""
+        return
     end
 
-    if Shared.ActiveWeap ~= weaponList[1] then
-        Shared.ActiveWeap = weaponList[1]
+    if Shared.ActiveWeap ~= selectedWeapon then
+        Shared.ActiveWeap = selectedWeapon
         Shared.LastWRSwitch = tick()
     end
 end
@@ -2813,7 +2801,10 @@ local function AutoQuestlineLoop()
                     until hasCombat or timeout > 15
                 end
 
-                Options.SelectedWeaponType:SetValue({["Melee"] = true})
+                if Options.SelectedWeapon then
+                    RefreshWeaponDropdown()
+                    Options.SelectedWeapon:SetValue("Combat")
+                end
                 
                 Options.SelectedMob:SetValue({["Thief"] = true})
                 Toggles.MobFarm:SetValue(true)
@@ -5079,12 +5070,8 @@ TB_Tabs.Autofarm.T4:AddDropdown("SelectedWeapon", {
     Searchable = true,
 })
 
-TB_Tabs.Autofarm.T4:AddDropdown("SelectedWeaponType", {
-    Text = "Select Weapon Type [Fallback]",
-    Values = Tables.Weapon,
-    Default = nil,
-    Multi = true,
-})
+RefreshWeaponDropdown()
+
 
 TB_Tabs.Autofarm.T4:AddToggle("IslandTP", {
     Text = "Island TP [Autofarm]",
