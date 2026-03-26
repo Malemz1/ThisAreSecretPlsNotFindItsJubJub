@@ -1880,27 +1880,81 @@ local function GetToolTypeFromModule(toolName)
     return "Melee"
 end
 
+local function GetAvailableWeapons()
+    local available = {}
+    local char = GetCharacter()
+    local containers = {Plr.Backpack}
+
+    if char then
+        table.insert(containers, char)
+    end
+
+    for _, container in ipairs(containers) do
+        for _, tool in ipairs(container:GetChildren()) do
+            if tool:IsA("Tool") and not table.find(available, tool.Name) then
+                table.insert(available, tool.Name)
+            end
+        end
+    end
+
+    table.sort(available)
+    return available
+end
+
+local function RefreshWeaponDropdown()
+    local weaponList = GetAvailableWeapons()
+
+    if Options.SelectedWeapon then
+        local currentSelection = Options.SelectedWeapon.Value
+        Options.SelectedWeapon:SetValues(weaponList)
+
+        if currentSelection and currentSelection ~= "" then
+            local stillExists = false
+            for _, weaponName in ipairs(weaponList) do
+                if weaponName == currentSelection then
+                    stillExists = true
+                    break
+                end
+            end
+
+            if stillExists then
+                Options.SelectedWeapon:SetValue(currentSelection)
+            end
+        end
+    end
+end
+
 local function GetWeaponsByType()
     local available = {}
+    local selectedWeapon = Options.SelectedWeapon and Options.SelectedWeapon.Value or nil
     local enabledTypes = Options.SelectedWeaponType.Value or {}
     local char = GetCharacter()
     
     local containers = {Plr.Backpack}
     if char then table.insert(containers, char) end
 
+    if selectedWeapon and selectedWeapon ~= "" then
+        for _, container in ipairs(containers) do
+            local tool = container:FindFirstChild(selectedWeapon)
+            if tool and tool:IsA("Tool") then
+                return {selectedWeapon}
+            end
+        end
+    end
+
     for _, container in ipairs(containers) do
         for _, tool in ipairs(container:GetChildren()) do
             if tool:IsA("Tool") then
                 local toolType = GetToolTypeFromModule(tool.Name)
                 
-                if enabledTypes[toolType] then
-                    if not table.find(available, tool.Name) then
-                        table.insert(available, tool.Name)
-                    end
+                if enabledTypes[toolType] and not table.find(available, tool.Name) then
+                    table.insert(available, tool.Name)
                 end
             end
         end
     end
+
+    table.sort(available)
     return available
 end
 
@@ -1912,22 +1966,9 @@ local function UpdateWeaponRotation()
         return 
     end
 
-    local switchDelay = Options.SwitchWeaponCD.Value or 4
-    if tick() - Shared.LastWRSwitch >= switchDelay then
-        Shared.WeapRotationIdx = Shared.WeapRotationIdx + 1
-        if Shared.WeapRotationIdx > #weaponList then Shared.WeapRotationIdx = 1 end
-        
-        Shared.ActiveWeap = weaponList[Shared.WeapRotationIdx]
-        Shared.LastWRSwitch = tick()
-    end
-
-    local exists = false
-    for _, name in ipairs(weaponList) do
-        if name == Shared.ActiveWeap then exists = true break end
-    end
-    
-    if not exists then
+    if Shared.ActiveWeap ~= weaponList[1] then
         Shared.ActiveWeap = weaponList[1]
+        Shared.LastWRSwitch = tick()
     end
 end
 
@@ -1946,6 +1987,37 @@ local function EquipWeapon()
         hum:EquipTool(tool) 
     end
 end
+
+local function HookWeaponCharacter(character)
+    if not character then return end
+
+    character.ChildAdded:Connect(function(child)
+        if child:IsA("Tool") then
+            RefreshWeaponDropdown()
+        end
+    end)
+
+    character.ChildRemoved:Connect(function(child)
+        if child:IsA("Tool") then
+            RefreshWeaponDropdown()
+        end
+    end)
+end
+
+RefreshWeaponDropdown()
+
+Plr.Backpack.ChildAdded:Connect(RefreshWeaponDropdown)
+Plr.Backpack.ChildRemoved:Connect(RefreshWeaponDropdown)
+
+if Plr.Character then
+    HookWeaponCharacter(Plr.Character)
+end
+
+Plr.CharacterAdded:Connect(function(character)
+    task.wait(0.5)
+    RefreshWeaponDropdown()
+    HookWeaponCharacter(character)
+end)
 
 local function CheckObsHaki()
     local PlayerGui = Plr:FindFirstChild("PlayerGui")
@@ -4088,7 +4160,9 @@ local function Func_AutoDungeon()
                 Shared.DungeonStartSent = true
             end
 
-            if Toggles.AutoDungeon.Value and isInfinite and currentWave and currentWave >= 51 and not Shared.InfiniteHopHandled then
+            local infiniteHopWave = math.max(1, tonumber(Options.InfiniteHopWave and Options.InfiniteHopWave.Value) or 51)
+
+            if Toggles.AutoDungeon.Value and isInfinite and currentWave and currentWave >= infiniteHopWave and not Shared.InfiniteHopHandled then
                 Shared.InfiniteHopHandled = true
                 Shared.DungeonRunActive = false
                 Shared.DungeonCompletionHandled = true
@@ -4996,22 +5070,20 @@ TB_Tabs.Autofarm.T3:AddToggle("AltBossFarm", {
     Default = false,
 })
 
+TB_Tabs.Autofarm.T4:AddDropdown("SelectedWeapon", {
+    Text = "Select Weapon",
+    Values = {},
+    Default = nil,
+    Multi = false,
+    AllowNull = true,
+    Searchable = true,
+})
+
 TB_Tabs.Autofarm.T4:AddDropdown("SelectedWeaponType", {
-    Text = "Select Weapon Type",
+    Text = "Select Weapon Type [Fallback]",
     Values = Tables.Weapon,
     Default = nil,
     Multi = true,
-})
-
-TB_Tabs.Autofarm.T4:AddSlider("SwitchWeaponCD", {
-    Text = "Switch Weapon Delay",
-    Default = 4,
-    Min = 1,
-    Max = 20,
-    Rounding = 0,
-    Callback = function(a)
-        tonumber(a)
-    end
 })
 
 TB_Tabs.Autofarm.T4:AddToggle("IslandTP", {
@@ -5794,6 +5866,17 @@ TB_Tabs.Dungeon.T2:AddToggle("AutoReplay", {
     Default = false,
 })
 
+TB_Tabs.Dungeon.T2:AddSlider("InfiniteHopWave", {
+    Text = "Infinite Tower Hop Wave",
+    Default = 51,
+    Min = 1,
+    Max = 999,
+    Rounding = 0,
+    Callback = function(a)
+        tonumber(a)
+    end
+})
+
 UpdateDungeonCountLabel()
 
     AddSliderToggle({ Group = GB.Player.Left.General, Id = "WS", Text = "WalkSpeed", Default = 16, Min = 16, Max = 250 })
@@ -6213,6 +6296,12 @@ end)
 Options.SelectedPassive:OnChanged(function()
     UpdateSpecPassiveLabel()
 end)
+
+if Options.SelectedWeapon then
+    Options.SelectedWeapon:OnChanged(function(value)
+        Shared.ActiveWeap = value or ""
+    end)
+end
 
 Options.SelectedSpec:OnChanged(UpdatePassiveSliders)
 
