@@ -1,4 +1,4 @@
-if getgenv().RowletDev_Running then
+if getgenv().taolao_Running then
     warn("Script already running!")
     return
 end
@@ -79,12 +79,12 @@ for _, name in ipairs(LimitedExecutors) do
     end
 end
 
-local repo = "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/"
+local repo = "https://raw.githubusercontent.com/gix314/arigato/refs/heads/main/Utilities/"
 local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
-local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
-local SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
+local ThemeManager = loadstring(game:HttpGet(repo .. "ThemeManager.lua"))()
+local SaveManager = loadstring(game:HttpGet(repo .. "SaveManager.lua"))()
 
-getgenv().RowletDev_Running = true
+getgenv().taolao_Running = true
 
 local Options = Library.Options
 local Toggles = Library.Toggles
@@ -132,11 +132,11 @@ local theChosenOne = omg[randomIndex]
 
 local eh_success, err = pcall(function()
 
-local hasJoinedDiscord = "Rowlet-Dev_DiscordJoined.txt"
+local hasJoinedDiscord = "fk taolao_DiscordJoined.txt"
 
 if not isfile(hasJoinedDiscord) then
-    local discordInvite = "https://discord.gg/"
-    local inviteCode = ""
+    local discordInvite = "https://discord.gg/mcMEkVdebJ"
+    local inviteCode = "mcMEkVdebJ"
     
     Library:Notify("Join our Discord for updates!", 5)
     
@@ -238,12 +238,6 @@ local Shared = {
     LastSwitch = { Title = "", Rune = "" },
     LastBuildSwitch = 0,
     LastDungeon = 0,
-    LastDungeonVote = 0,
-    LastDungeonReplay = 0,
-    LastDungeonNPCSeen = 0,
-    DungeonCompleted = 0,
-    DungeonRunActive = false,
-    DungeonCompletionHandled = false,
     
     AltDamage = {},
     AltActive = false,
@@ -358,8 +352,6 @@ local Remotes = {
 
     TP_Portal = GetRemote(RS, "Remotes.TeleportToPortal"),
     OpenDungeon = GetRemote(RS, "Remotes.RequestDungeonPortal"),
-    DungeonVote = GetRemote(RS, "Remotes.DungeonWaveVote"),
-    DungeonReplayVote = GetRemote(RS, "Remotes.DungeonWaveReplayVote"),
 
     EquipTitle = GetRemote(RS, "RemoteEvents.TitleEquip"),
     TitleUnequip = GetRemote(RS, "RemoteEvents.TitleUnequip"),
@@ -369,7 +361,7 @@ local Remotes = {
 
     OpenMerchant = GetRemote(RS, "Remotes.MerchantRemotes.OpenMerchantUI"),
     MerchantBuy = GetRemote(RS, "Remotes.MerchantRemotes.PurchaseMerchantItem"),
-    ValentineBuy = GetRemote(RS, "Remotes.ValentineMerchantRemotes.PurchaseValentineMerchantItem"), 
+    ValentineBuy = GetRemote(RS, "Remotes.ValentineMerchantRemotes.PurchaseValentineMerchantItem"),
     StockUpdate = GetRemote(RS, "Remotes.MerchantRemotes.MerchantStockUpdate"),
 
     SummonBoss = GetRemote(RS, "Remotes.RequestSummonBoss"),
@@ -377,7 +369,6 @@ local Remotes = {
     RimuruBoss = GetRemote(RS, "RemoteEvents.RequestSpawnRimuru"),
     AnosBoss = GetRemote(RS, "Remotes.RequestSpawnAnosBoss"),
     TrueAizenBoss = GetRemote(RS, "RemoteEvents.RequestSpawnTrueAizen"),
-    AtomicBoss = GetRemote(RS, "RemoteEvents.RequestSpawnAtomic"),
 
     ReqInventory = GetRemote(RS, "Remotes.RequestInventory"),
     Ascend = GetRemote(RS, "RemoteEvents.RequestAscend"),
@@ -500,14 +491,14 @@ local Connections = {
 local Tables = {
     AscendLabels = {},
     DiffList = {"Normal", "Medium", "Hard", "Extreme"},
-    MobList = {"DungeonNPC"},
+    MobList = {},
     MiniBossList = {"ThiefBoss", "MonkeyBoss", "DesertBoss", "SnowBoss", "PandaMiniBoss"},
     BossList = {},
     AllBossList = {},
     AllNPCList = {},
     AllEntitiesList = {},
     SummonList = {},
-    OtherSummonList = {"StrongestHistory", "StrongestToday", "Rimuru", "Anos", "TrueAizen","Atomic"},
+    OtherSummonList = {"StrongestHistory", "StrongestToday", "Rimuru", "Anos", "TrueAizen"},
     Weapon = {"Melee", "Sword", "Power"},
     ManualWeaponClass = {
         ["Invisible"] = "Power",
@@ -550,15 +541,13 @@ local Tables = {
     IslandList = {"Starter", "Jungle", "Desert", "Snow", "Sailor", "Shibuya", "HuecoMundo", "Boss", "Dungeon", "Shinjuku", "Valentine", "Slime", "Academy", "Judgement", "SoulSociety"},
     NPC_QuestList = {"DungeonUnlock", "SlimeKeyUnlock"},
     NPC_MiscList = {"Artifacts", "Blessing", "Enchant", "SkillTree", "Cupid", "ArmHaki", "Observation", "Conqueror"},
-    DungeonList = {"CidDungeon", "RuneDungeon", "DoubleDungeon", "BossRush", "InfiniteTower"},
+    DungeonList = {"CidDungeon", "RuneDungeon", "DoubleDungeon", "BossRush"},
 
     NPC_MovesetList = {},
     NPC_MasteryList = {},
 
     MobToIsland = {}
 }
-
-Tables.MobToIsland["DungeonNPC"] = "Dungeon"
 
 local allSets = {}
 for setName, _ in pairs(Modules.ArtifactConfig.Sets) do table.insert(allSets, setName) end
@@ -1096,7 +1085,7 @@ local function PostToWebhook()
         ["embeds"] = {{
             ["description"] = desc,
             ["color"] = tonumber("ffff77", 16),
-            ["footer"] = { ["text"] = string.format("Rowlet-Dev • Session: %s • %s", GetSessionTime(), os.date("%x %X")) },
+            ["footer"] = { ["text"] = string.format("fk taolao • Session: %s • %s", GetSessionTime(), os.date("%x %X")) },
             ["thumbnail"] = { ["url"] = catLink }
         }}
     }
@@ -1532,7 +1521,7 @@ local function SendSafetyWebhook(targetPlayer, reason)
                 { ["name"] = "Type", ["value"] = reason, ["inline"] = true },
                 { ["name"] = "ID", ["value"] = "```" .. game.JobId .. "```", ["inline"] = false }
             },
-            ["footer"] = { ["text"] = "Rowlet-Dev • " .. os.date("%x %X") }
+            ["footer"] = { ["text"] = "fk taolao • " .. os.date("%x %X") }
         }}
     }
 
@@ -1573,7 +1562,7 @@ local function CheckServerTypeSafety()
                             { ["name"] = "Username", ["value"] = "`" .. Plr.Name .. "`", ["inline"] = true },
                             { ["name"] = "JobId", ["value"] = "```" .. game.JobId .. "```", ["inline"] = false }
                         },
-                        ["footer"] = { ["text"] = "Rowlet-Dev" }
+                        ["footer"] = { ["text"] = "taolao" }
                     }}
                 }
                 task.spawn(function()
@@ -1589,7 +1578,7 @@ local function CheckServerTypeSafety()
             end
 
             task.wait(0.8)
-            Plr:Kick("\n[Rowlet-Dev]\nReason: You are in a public server.")
+            Plr:Kick("\n[fk taolao]\nReason: You are in a public server.")
         end
     end
 end
@@ -1604,7 +1593,7 @@ local function CheckPlayerForSafety(targetPlayer)
         SendSafetyWebhook(targetPlayer, "Player Join Detection")
         
         task.wait(0.5) 
-        Plr:Kick("\n[Rowlet-Dev]\nReason: A player joined the server (" .. targetPlayer.Name .. ")")
+        Plr:Kick("\n[fk taolao]\nReason: A player joined the server (" .. targetPlayer.Name .. ")")
         return
     end
 
@@ -1614,7 +1603,7 @@ local function CheckPlayerForSafety(targetPlayer)
             SendSafetyWebhook(targetPlayer, "Moderator Detection (Rank: " .. tostring(rank) .. ")")
             
             task.wait(0.5)
-            Plr:Kick("\n[Rowlet-Dev]\nReason: Moderator Detected (" .. targetPlayer.Name .. ")")
+            Plr:Kick("\n[fk taolao]\nReason: Moderator Detected (" .. targetPlayer.Name .. ")")
         end
     end
 end
@@ -1882,8 +1871,21 @@ end
 
 local function GetWeaponsByType()
     local available = {}
+    local seen = {}
     local enabledTypes = Options.SelectedWeaponType.Value or {}
+    local hasEnabledType = false
     local char = GetCharacter()
+
+    for _, enabled in pairs(enabledTypes) do
+        if enabled then
+            hasEnabledType = true
+            break
+        end
+    end
+
+    if not hasEnabledType then
+        return available
+    end
     
     local containers = {Plr.Backpack}
     if char then table.insert(containers, char) end
@@ -1892,19 +1894,57 @@ local function GetWeaponsByType()
         for _, tool in ipairs(container:GetChildren()) do
             if tool:IsA("Tool") then
                 local toolType = GetToolTypeFromModule(tool.Name)
+                local cleanName = Clean(tool.Name)
                 
-                if enabledTypes[toolType] then
-                    if not table.find(available, tool.Name) then
-                        table.insert(available, tool.Name)
-                    end
+                if enabledTypes[toolType] and not seen[cleanName] then
+                    seen[cleanName] = true
+                    table.insert(available, tool.Name)
                 end
             end
         end
     end
+
+    table.sort(available, function(a, b)
+        return a:lower() < b:lower()
+    end)
+
     return available
 end
 
-local function UpdateWeaponRotation()
+local function FindWeaponToolByName(toolName)
+    if not toolName or toolName == "" then return nil end
+
+    local char = GetCharacter()
+    local containers = {Plr.Backpack}
+    if char then table.insert(containers, char) end
+
+    local cleanTarget = Clean(toolName)
+
+    for _, container in ipairs(containers) do
+        local exact = container:FindFirstChild(toolName)
+        if exact and exact:IsA("Tool") then
+            return exact
+        end
+
+        for _, child in ipairs(container:GetChildren()) do
+            if child:IsA("Tool") and Clean(child.Name) == cleanTarget then
+                return child
+            end
+        end
+    end
+
+    return nil
+end
+
+local function IsWeaponEquipped(toolName)
+    local char = GetCharacter()
+    if not char then return false end
+
+    local equipped = char:FindFirstChildOfClass("Tool")
+    return equipped and Clean(equipped.Name) == Clean(toolName) or false
+end
+
+local function UpdateWeaponRotation(forceRefresh)
     local weaponList = GetWeaponsByType()
     
     if #weaponList == 0 then 
@@ -1913,38 +1953,80 @@ local function UpdateWeaponRotation()
     end
 
     local switchDelay = Options.SwitchWeaponCD.Value or 4
-    if tick() - Shared.LastWRSwitch >= switchDelay then
-        Shared.WeapRotationIdx = Shared.WeapRotationIdx + 1
-        if Shared.WeapRotationIdx > #weaponList then Shared.WeapRotationIdx = 1 end
+    local shouldRotate = forceRefresh or Shared.ActiveWeap == "" or (tick() - Shared.LastWRSwitch >= switchDelay)
+
+    if shouldRotate then
+        if forceRefresh or Shared.ActiveWeap == "" then
+            Shared.WeapRotationIdx = 1
+        else
+            Shared.WeapRotationIdx = Shared.WeapRotationIdx + 1
+            if Shared.WeapRotationIdx > #weaponList then Shared.WeapRotationIdx = 1 end
+        end
         
         Shared.ActiveWeap = weaponList[Shared.WeapRotationIdx]
         Shared.LastWRSwitch = tick()
     end
 
     local exists = false
-    for _, name in ipairs(weaponList) do
-        if name == Shared.ActiveWeap then exists = true break end
+    for idx, name in ipairs(weaponList) do
+        if Clean(name) == Clean(Shared.ActiveWeap) then
+            exists = true
+            Shared.WeapRotationIdx = idx
+            Shared.ActiveWeap = name
+            break
+        end
     end
     
     if not exists then
+        Shared.WeapRotationIdx = 1
         Shared.ActiveWeap = weaponList[1]
     end
 end
 
-local function EquipWeapon()
-    UpdateWeaponRotation()
-    if Shared.ActiveWeap == "" then return end
-    
-    local char = GetCharacter()
-    local hum = char and char:FindFirstChildOfClass("Humanoid")
-    if not hum then return end
+local function EquipWeapon(forceRefresh)
+    UpdateWeaponRotation(forceRefresh)
+    if Shared.ActiveWeap == "" then return false end
 
-    if char:FindFirstChild(Shared.ActiveWeap) then return end 
-    
-    local tool = Plr.Backpack:FindFirstChild(Shared.ActiveWeap) or char:FindFirstChild(Shared.ActiveWeap)
-    if tool then 
-        hum:EquipTool(tool) 
+    if IsWeaponEquipped(Shared.ActiveWeap) then
+        return true
     end
+    
+    local success = false
+
+    for attempt = 1, 4 do
+        local char = GetCharacter()
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if not hum then break end
+
+        local tool = FindWeaponToolByName(Shared.ActiveWeap)
+        if tool then
+            pcall(function()
+                if Remotes.EquipWeapon then
+                    Remotes.EquipWeapon:FireServer("Equip", tool.Name)
+                end
+            end)
+
+            task.wait(0.05)
+
+            if not IsWeaponEquipped(tool.Name) then
+                pcall(function()
+                    hum:EquipTool(tool)
+                end)
+            end
+
+            task.wait(0.08)
+
+            if IsWeaponEquipped(tool.Name) then
+                Shared.ActiveWeap = tool.Name
+                success = true
+                break
+            end
+        end
+
+        task.wait(0.08)
+    end
+
+    return success
 end
 
 local function CheckObsHaki()
@@ -2396,8 +2478,6 @@ local function FireBossRemote(bossName, diff)
             if Remotes.TrueAizenBoss then Remotes.TrueAizenBoss:FireServer(diff) end
         elseif lowerName:find("strongest") then
             Remotes.JJKSummonBoss:FireServer(remoteArg, diff)
-        elseif lowerName:find("atomic") then
-            if Remotes.AtomicBoss then Remotes.AtomicBoss:FireServer(diff) end
         else
             local summonId = GetInternalSummonId(bossName)
             Remotes.SummonBoss:FireServer(summonId, diff)
@@ -3031,7 +3111,7 @@ local function GetAllMobTarget()
 
     local rotateList = {}
     for _, mobName in ipairs(Tables.MobList) do
-        if mobName ~= "TrainingDummy" and mobName ~= "DungeonNPC" then
+        if mobName ~= "TrainingDummy" then
             table.insert(rotateList, mobName)
         end
     end
@@ -3177,7 +3257,7 @@ local function GetMobTarget()
 
     local selectedDict = Options.SelectedMob.Value or {}
     local enabledMobs = {}
-
+    
     for mob, enabled in pairs(selectedDict) do
         if enabled then table.insert(enabledMobs, mob) end
     end
@@ -3186,28 +3266,17 @@ local function GetMobTarget()
     if #enabledMobs == 0 then return nil end
 
     if Shared.MobIdx > #enabledMobs then Shared.MobIdx = 1 end
-
+    
     local targetMobName = enabledMobs[Shared.MobIdx]
     local target, count = GetBestMobCluster({[targetMobName] = true})
 
     if target then
         local island = GetNearestIsland(target:GetPivot().Position, target.Name)
         return target, island, "Mob"
-    end
-
-    if targetMobName == "DungeonNPC" then
-        if Toggles.IslandTP.Value and not Shared.MovingIsland and Shared.Island ~= "Dungeon" then
-            Shared.MovingIsland = true
-            Remotes.TP_Portal:FireServer("Dungeon")
-            Shared.Island = "Dungeon"
-            task.wait(2.5)
-            Shared.MovingIsland = false
-        end
+    else
+        Shared.MobIdx = Shared.MobIdx + 1
         return nil
     end
-
-    Shared.MobIdx = Shared.MobIdx + 1
-    return nil
 end
 
 local function ShouldMainWait()
@@ -3920,219 +3989,8 @@ local function Func_ArtifactMilestone()
     end
 end
 
-local function HasAliveDungeonNPC()
-    for _, npc in pairs(PATH.Mobs:GetChildren()) do
-        if npc:IsA("Model") and npc.Name:gsub("%d+$", "") == "DungeonNPC" and IsValidTarget(npc) then
-            return true
-        end
-    end
-    return false
-end
-
-local function HasVisibleDungeonReplayUI()
-    for _, gui in ipairs(PGui:GetDescendants()) do
-        if gui:IsA("GuiObject") and gui.Visible then
-            local lowerName = gui.Name:lower()
-
-            if lowerName:find("replay") or lowerName:find("dungeoncompleted") then
-                return true
-            end
-
-            if gui:IsA("TextLabel") or gui:IsA("TextButton") then
-                local txt = gui.Text:lower()
-                if txt:find("replay") or txt:find("completed") then
-                    return true
-                end
-            end
-        end
-    end
-    return false
-end
-
-local function GetDungeonUIRefs()
-    local dungeonUI = PGui:FindFirstChild("DungeonUI")
-    local contentFrame = dungeonUI and dungeonUI:FindFirstChild("ContentFrame")
-    local dungeonFrame = contentFrame and contentFrame:FindFirstChild("DungeonFrame")
-    local dungeonTitle = dungeonFrame and dungeonFrame:FindFirstChild("Txt")
-    local peopleVoted = contentFrame and contentFrame:FindFirstChild("PeopleVoted")
-    local buttonFrame = peopleVoted and peopleVoted:FindFirstChild("ButtonFrame")
-    local startButton = buttonFrame and buttonFrame:FindFirstChild("StartButton")
-    local startTxt = startButton and startButton:FindFirstChild("Txt")
-    local waveFrame = contentFrame and contentFrame:FindFirstChild("WaveFrame")
-    local holder = waveFrame and waveFrame:FindFirstChild("Holder")
-    local waveText = holder and holder:FindFirstChild("TotalWavesAndCurrentWaveYouAreAt")
-
-    return {
-        DungeonUI = dungeonUI,
-        ContentFrame = contentFrame,
-        DungeonFrame = dungeonFrame,
-        DungeonTitle = dungeonTitle,
-        PeopleVoted = peopleVoted,
-        ButtonFrame = buttonFrame,
-        StartButton = startButton,
-        StartTxt = startTxt,
-        WaveFrame = waveFrame,
-        Holder = holder,
-        WaveText = waveText,
-    }
-end
-
-local function IsDungeonFrameVisible(refs)
-    refs = refs or GetDungeonUIRefs()
-    return refs.DungeonFrame and refs.DungeonFrame.Visible or false
-end
-
-local function GetDungeonTitleText(refs)
-    refs = refs or GetDungeonUIRefs()
-    if refs.DungeonTitle and refs.DungeonTitle.Text then
-        return tostring(refs.DungeonTitle.Text)
-    end
-    return ""
-end
-
-local function GetDungeonStartText(refs)
-    refs = refs or GetDungeonUIRefs()
-    if refs.StartTxt and refs.StartTxt.Text then
-        return tostring(refs.StartTxt.Text)
-    end
-    return ""
-end
-
-local function GetDungeonWaveNumber(refs)
-    refs = refs or GetDungeonUIRefs()
-    local raw = refs.WaveText and refs.WaveText.Text or ""
-    raw = tostring(raw)
-
-    local current = raw:match("(%d+)%s*/")
-    if current then
-        return tonumber(current)
-    end
-
-    current = raw:match("[Ww]ave%s*(%d+)")
-    if current then
-        return tonumber(current)
-    end
-
-    current = raw:match("(%d+)")
-    if current then
-        return tonumber(current)
-    end
-
-    return nil
-end
-
-local function UpdateDungeonCountLabel()
-    if DungeonCount and DungeonCount.SetText then
-        DungeonCount:SetText("Dungeon Completed: " .. tostring(Shared.DungeonCompleted or 0))
-    end
-end
-
-local function IncrementDungeonCompleted()
-    Shared.DungeonCompleted = (Shared.DungeonCompleted or 0) + 1
-    UpdateDungeonCountLabel()
-end
-
-local function HopToInfinitePlace()
-    if tick() - (Shared.LastInfiniteHop or 0) < 5 then
-        return
-    end
-
-    Shared.LastInfiniteHop = tick()
-
-    pcall(function()
-        TeleportService:Teleport(77747658251236, Plr)
-    end)
-end
-
 local function Func_AutoDungeon()
-    while Toggles.AutoDungeon.Value or Toggles.AutoDiff.Value or Toggles.AutoReplay.Value do
-        task.wait(0.75)
-
-        local selected = Options.SelectedDungeon.Value
-        local selectedDiff = Options.SelectedDiff.Value or "Easy"
-        local refs = GetDungeonUIRefs()
-        local inDungeon = IsDungeonFrameVisible(refs)
-        local dungeonTitle = GetDungeonTitleText(refs)
-        local dungeonTitleLower = dungeonTitle:lower()
-        local startText = GetDungeonStartText(refs)
-        local startLower = startText:lower()
-        local isInfinite = dungeonTitleLower:find("infinite tower") ~= nil
-        local currentWave = GetDungeonWaveNumber(refs)
-
-        if not inDungeon then
-            Shared.CurrentDungeonTitle = nil
-            Shared.DungeonDiffSent = false
-            Shared.DungeonStartSent = false
-            Shared.InfiniteHopHandled = false
-        else
-            if Shared.CurrentDungeonTitle ~= dungeonTitle then
-                Shared.CurrentDungeonTitle = dungeonTitle
-                Shared.DungeonDiffSent = false
-                Shared.DungeonStartSent = false
-                Shared.InfiniteHopHandled = false
-            end
-
-            if Toggles.AutoDiff.Value and not isInfinite and not Shared.DungeonDiffSent and selectedDiff and Remotes.DungeonVote and (tick() - (Shared.LastDungeonVote or 0) > 1) then
-                pcall(function()
-                    Remotes.DungeonVote:FireServer(selectedDiff)
-                end)
-                Shared.LastDungeonVote = tick()
-                Shared.DungeonDiffSent = true
-            end
-
-            if Toggles.AutoDungeon.Value and startLower == "start" and Remotes.DungeonVote and (tick() - (Shared.LastDungeonStart or 0) > 1) then
-                pcall(function()
-                    Remotes.DungeonVote:FireServer("start")
-                end)
-                Shared.LastDungeonStart = tick()
-                Shared.DungeonStartSent = true
-            end
-
-            if Toggles.AutoDungeon.Value and isInfinite and currentWave and currentWave >= 51 and not Shared.InfiniteHopHandled then
-                Shared.InfiniteHopHandled = true
-                Shared.DungeonRunActive = false
-                Shared.DungeonCompletionHandled = true
-                IncrementDungeonCompleted()
-                task.wait(0.25)
-                HopToInfinitePlace()
-            end
-        end
-
-        local hasDungeonNPC = HasAliveDungeonNPC()
-        if hasDungeonNPC then
-            Shared.DungeonRunActive = true
-            Shared.LastDungeonNPCSeen = tick()
-            Shared.DungeonCompletionHandled = false
-        end
-
-        local replayVisible = HasVisibleDungeonReplayUI()
-        local dungeonEnded = (not isInfinite) and (
-            replayVisible or (
-                Shared.DungeonRunActive and
-                not hasDungeonNPC and
-                (Shared.LastDungeonNPCSeen or 0) > 0 and
-                tick() - (Shared.LastDungeonNPCSeen or 0) > 8
-            )
-        )
-
-        if dungeonEnded and not Shared.DungeonCompletionHandled then
-            Shared.DungeonCompletionHandled = true
-            Shared.DungeonRunActive = false
-            IncrementDungeonCompleted()
-
-            if Toggles.AutoReplay.Value and Remotes.DungeonReplayVote and (tick() - (Shared.LastDungeonReplay or 0) > 2) then
-                pcall(function()
-                    Remotes.DungeonReplayVote:FireServer("sponsor")
-                end)
-                Shared.LastDungeonReplay = tick()
-            end
-        end
-
-    end
-end
-
-local function Func_AutoJoinDungeon()
-    while Toggles.AutoJoinDungeon.Value do
+    while Toggles.AutoDungeon.Value do
         task.wait(1)
         
         local selected = Options.SelectedDungeon.Value
@@ -4459,7 +4317,7 @@ local function Func_ArtifactAutomation()
 end
 
 local Window = Library:CreateWindow({
-	Title = "Rowlet-Dev",
+	Title = "fk taolao",
 	Footer = "" .. assetName .. " | DUMPED | LOVE YOU",
 	NotifySide = "Right",
     Icon = tostring(theChosenOne),
@@ -4659,7 +4517,7 @@ TimeLabel = GB.Information.Left.User:AddLabel("<b>Time Left:</b> " .. initTime)
 
 task.spawn(function()
     while task.wait(5) do
-        if not getgenv().RowletDev_Running then break end
+        if not getgenv().taolao_Running then break end
         
         local tier, timeLeft = GetJunkieData()
         
@@ -4715,7 +4573,7 @@ GB.Information.Right.Others:AddLabel("- 🙏 Help me to grow the discord server!
 
 GB.Information.Right.Others:AddButton({ 
     Text = "Copy Discord Invite", 
-    Func = function() setclipboard("https://discord.gg/") end,
+    Func = function() setclipboard("https://discord.gg/mcMEkVdebJ") end,
     Disabled = not Support.Clipboard,
     DisabledTooltip = "Missing function: setclipboard"
 })
@@ -4723,7 +4581,7 @@ GB.Information.Right.Others:AddButton({
 GB.Information.Right.Others:AddButton({ 
     Text = "Join Discord Server",
     Func = function()
-        local inviteCode = ""
+        local inviteCode = "mcMEkVdebJ"
         local inviteLink = "https://discord.gg/" .. inviteCode
 
         if request then
@@ -5763,17 +5621,12 @@ TB_Tabs.Dungeon.T1:AddDropdown("SelectedDungeon", {
     Searchable = true,
 })
 
-TB_Tabs.Dungeon.T1:AddToggle("AutoJoinDungeon", {
+TB_Tabs.Dungeon.T1:AddToggle("AutoDungeon", {
     Text = "Auto Join Dungeon",
     Default = false,
 })
 
-DungeonCount = TB_Tabs.Dungeon.T2:AddLabel("Dungeon Completed: 0")
-
-TB_Tabs.Dungeon.T2:AddToggle("AutoDungeon", {
-    Text = "Auto Dungeon",
-    Default = false,
-})
+DungeonCount = TB_Tabs.Dungeon.T2:AddLabel("Dungeon Completed: N/A")
 
 TB_Tabs.Dungeon.T2:AddDropdown("SelectedDiff", {
     Text = "Select Difficulty",
@@ -5794,7 +5647,10 @@ TB_Tabs.Dungeon.T2:AddToggle("AutoReplay", {
     Default = false,
 })
 
-UpdateDungeonCountLabel()
+TB_Tabs.Dungeon.T2:AddToggle("DungeonAutofarm", {
+    Text = "Autofarm Dungeon",
+    Default = false,
+})
 
     AddSliderToggle({ Group = GB.Player.Left.General, Id = "WS", Text = "WalkSpeed", Default = 16, Min = 16, Max = 250 })
     local TPW_T, TPW_S = AddSliderToggle({ Group = GB.Player.Left.General, Id = "TPW", Text = "TPWalk", Default = 1, Min = 1, Max = 10, Rounding = 1 })
@@ -6214,6 +6070,17 @@ Options.SelectedPassive:OnChanged(function()
     UpdateSpecPassiveLabel()
 end)
 
+Options.SelectedWeaponType:OnChanged(function()
+    Shared.ActiveWeap = ""
+    Shared.WeapRotationIdx = 1
+    Shared.LastWRSwitch = 0
+
+    task.spawn(function()
+        task.wait()
+        EquipWeapon(true)
+    end)
+end)
+
 Options.SelectedSpec:OnChanged(UpdatePassiveSliders)
 
 Options.SelectedKickType:OnChanged(function()
@@ -6255,25 +6122,8 @@ Toggles.ArtifactUpgrade:OnChanged(function(state)
     Thread("Artifact.Upgrade", SafeLoop("ArtifactLogic", Func_ArtifactAutomation), state)
 end)
 
-local function SyncDungeonThread()
-    local enabled = Toggles.AutoDungeon.Value or Toggles.AutoDiff.Value or Toggles.AutoReplay.Value
-    Thread("AutoDungeon", SafeLoop("AutoDungeon", Func_AutoDungeon), enabled)
-end
-
-Toggles.AutoJoinDungeon:OnChanged(function(state)
-    Thread("AutoJoinDungeon", SafeLoop("AutoJoinDungeon", Func_AutoJoinDungeon), state)
-end)
-
 Toggles.AutoDungeon:OnChanged(function(state)
-    SyncDungeonThread()
-end)
-
-Toggles.AutoDiff:OnChanged(function(state)
-    SyncDungeonThread()
-end)
-
-Toggles.AutoReplay:OnChanged(function(state)
-    SyncDungeonThread()
+    Thread("AutoDungeon", Func_AutoDungeon, state)
 end)
 
 Toggles.AutoMerchant:OnChanged(function(state)
@@ -6443,7 +6293,7 @@ Remotes.UpAscend.OnClientEvent:Connect(function(data)
 end)
 
 task.spawn(function()
-    while getgenv().RowletDev_Running do
+    while getgenv().taolao_Running do
         if Remotes.ReqInventory then
             Remotes.ReqInventory:FireServer()
         end
@@ -6453,7 +6303,7 @@ end)
 
 task.spawn(function()
     while task.wait(1) do
-        if not getgenv().RowletDev_Running then break end
+        if not getgenv().taolao_Running then break end
         
         pcall(function()
             if PityLabel then
@@ -6598,7 +6448,7 @@ end)
 
 task.spawn(function()
     while task.wait(1) do
-        if not getgenv().RowletDev_Running then break end
+        if not getgenv().taolao_Running then break end
         
         local char = GetCharacter()
         local root = char and char:FindFirstChild("HumanoidRootPart")
@@ -6675,7 +6525,7 @@ MenuGroup:AddLabel("Menu bind")
 	:AddKeyPicker("MenuKeybind", { Default = "U", NoUI = true, Text = "Menu keybind" })
 
 MenuGroup:AddButton("Unload", function()
-    getgenv().RowletDev_Running = false
+    getgenv().taolao_Running = false
     Shared.Farm = false
     Cleanup(Connections)
     Cleanup(Flags)
@@ -6684,40 +6534,24 @@ end)
 
 Library.ToggleKeybind = Options.MenuKeybind
 
-local SaveSystemReady = Support.FileIO
+ThemeManager:SetLibrary(Library)
+SaveManager:SetLibrary(Library)
 
-if SaveSystemReady then
-    ThemeManager:SetLibrary(Library)
-    SaveManager:SetLibrary(Library)
+SaveManager:IgnoreThemeSettings()
 
-    SaveManager:IgnoreThemeSettings()
-    SaveManager:SetIgnoreIndexes({
-        "MenuKeybind",
-        "KeybindMenuOpen",
-        "ShowCustomCursor",
-        "NotificationSide",
-        "DPIDropdown",
-        "AutoShowUI",
-        "SelectedIsland",
-        "SelectedQuestNPC",
-        "SelectedMiscNPC",
-        "SelectedMiscAllNPC",
-        "SelectedMovesetNPC",
-        "SelectedMasteryNPC",
-    })
+SaveManager:SetIgnoreIndexes({ "SelectedIsland" })
+SaveManager:SetIgnoreIndexes({ "SelectedQuestNPC" })
+SaveManager:SetIgnoreIndexes({ "SelectedMiscNPC" })
+SaveManager:SetIgnoreIndexes({ "SelectedMiscAllNPC" })
+SaveManager:SetIgnoreIndexes({ "SelectedMovesetNPC" })
+SaveManager:SetIgnoreIndexes({ "SelectedMasteryNPC" })
 
-    ThemeManager:SetFolder("Rowlet-Dev")
-    SaveManager:SetFolder("Rowlet-Dev/SailorPiece")
-    SaveManager:SetSubFolder(tostring(game.PlaceId))
+ThemeManager:SetFolder("taolao")
+SaveManager:SetFolder("taolao/SailorPiece")
 
-    SaveManager:BuildConfigSection(Tabs.Config)
-    ThemeManager:ApplyToTab(Tabs.Config)
-else
-    Tabs.Config:AddLeftGroupbox("Config Status", "triangle-alert"):AddLabel(
-        "Config/Theme manager disabled: your executor does not support file functions (writefile/isfile).",
-        true
-    )
-end
+SaveManager:BuildConfigSection(Tabs.Config)
+
+ThemeManager:ApplyToTab(Tabs.Config)
 
 Options.Lock_Type:SetValues(Modules.ArtifactConfig.Categories)
 Options.Lock_Set:SetValues(allSets)
@@ -6752,9 +6586,7 @@ task.spawn(function()
         if timeout == 1.5 then Remotes.ReqInventory:FireServer() end
     end
 
-    if SaveSystemReady then
-        SaveManager:LoadAutoloadConfig()
-    end
+    SaveManager:LoadAutoloadConfig()
     task.wait(0.25)
 
     if Toggles.AutoRune.Value then
@@ -6784,9 +6616,7 @@ elseif UIS.KeyboardEnabled then
     Library:Notify("Device detected: PC\nPress ".. Options.MenuKeybind.Value .." to show/hide UI.", 10)
 end
 
-if SaveSystemReady then
-    ThemeManager:LoadDefault()
-end
+ThemeManager:LoadDefault()
 
 task.spawn(function()
     task.wait(0.1)
