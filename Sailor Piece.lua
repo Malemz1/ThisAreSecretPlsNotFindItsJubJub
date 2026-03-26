@@ -4775,8 +4775,8 @@ GB.Information.Left.Game:AddButton("Redeem All Codes", function()
     end
 end)
 
-GB.Information.Right.Others:AddLabel("- ⚠️ If some features are disabled, it is because your executor lacks the required functions.", true)
-GB.Information.Right.Others:AddLabel("- 🙏 Help me to grow the discord server! It's really <b>dead..</b>", true)
+GB.Information.Right.Others:AddLabel("- ⚠️ Some Feature is Auto Update When Game <font color='#0033FF'>UPDATE</font>.", true)
+GB.Information.Right.Others:AddLabel("- 🙏 Thanks For Using", true)
 
 GB.Information.Right.Others:AddButton({ 
     Text = "Copy Discord Invite", 
