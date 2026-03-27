@@ -4091,6 +4091,41 @@ local function GetDungeonWaveNumber(refs)
     return nil
 end
 
+local function IsGuiObjectActuallyVisible(obj)
+    if not obj or not obj:IsA("GuiObject") or not obj.Visible then
+        return false
+    end
+
+    local parent = obj.Parent
+    while parent do
+        if parent:IsA("GuiObject") and not parent.Visible then
+            return false
+        end
+        parent = parent.Parent
+    end
+
+    return true
+end
+
+local function HasVisibleDungeonDifficultyButtons(refs)
+    refs = refs or GetDungeonUIRefs()
+    local root = refs.ContentFrame or refs.DungeonUI
+    if not root then
+        return false
+    end
+
+    for _, descendant in ipairs(root:GetDescendants()) do
+        if (descendant:IsA("TextButton") or descendant:IsA("TextLabel")) and IsGuiObjectActuallyVisible(descendant) then
+            local txt = tostring(descendant.Text or ""):match("^%s*(.-)%s*$")
+            if txt == "Easy" or txt == "Medium" or txt == "Hard" or txt == "Extreme" then
+                return true
+            end
+        end
+    end
+
+    return false
+end
+
 local function UpdateDungeonCountLabel()
     if DungeonCount and DungeonCount.SetText then
         DungeonCount:SetText("Dungeon Completed: " .. tostring(Shared.DungeonCompleted or 0))
@@ -4128,10 +4163,14 @@ local function Func_AutoDungeon()
         local startLower = startText:lower()
         local waveText = (GetDungeonWaveText(refs):match("^%s*(.-)%s*$") or "")
         local waveTextUpper = waveText:upper()
+        local hasQuestionMarkState = waveText:find("???", 1, true) ~= nil
+        local hasBossRushState = waveTextUpper:find("BOSS RUSH", 1, true) ~= nil
+        local hasClearedState = waveTextUpper:find("CLEARED!", 1, true) ~= nil
+        local hasVisibleDifficultyButtons = HasVisibleDungeonDifficultyButtons(refs)
         local isInfinite = dungeonTitleLower:find("infinite tower") ~= nil
         local isNormalDungeon = inDungeon and not isInfinite
-        local isDiffScreen = isNormalDungeon and (waveText == "???" or waveTextUpper == "BOSS RUSH")
-		local isDungeonCleared = isNormalDungeon and (waveTextUpper == "DUNGEON CLEARED!" or waveTextUpper == "BOSS RUSH CLEARED!")
+        local isDiffScreen = isNormalDungeon and ((hasQuestionMarkState or hasBossRushState or hasVisibleDifficultyButtons) and not hasClearedState)
+        local isDungeonCleared = isNormalDungeon and (waveTextUpper:find("DUNGEON CLEARED!", 1, true) ~= nil or waveTextUpper:find("BOSS RUSH CLEARED!", 1, true) ~= nil)
         local currentWave = GetDungeonWaveNumber(refs)
 
         if not inDungeon then
@@ -4165,7 +4204,7 @@ local function Func_AutoDungeon()
                 Shared.DungeonAtDiffScreen = false
             end
 
-            if Toggles.AutoDiff.Value and isDiffScreen and not Shared.DungeonDiffSent and selectedDiff and Remotes.DungeonVote and (tick() - (Shared.LastDungeonVote or 0) > 1) then
+            if Toggles.AutoDiff.Value and isDiffScreen and startLower ~= "start" and selectedDiff and Remotes.DungeonVote and (tick() - (Shared.LastDungeonVote or 0) > 1) then
                 pcall(function()
                     Remotes.DungeonVote:FireServer(selectedDiff)
                 end)
