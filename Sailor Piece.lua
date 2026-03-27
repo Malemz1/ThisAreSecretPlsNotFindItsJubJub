@@ -4061,10 +4061,17 @@ local function GetDungeonStartText(refs)
     return ""
 end
 
+local function GetDungeonWaveText(refs)
+    refs = refs or GetDungeonUIRefs()
+    if refs.WaveText and refs.WaveText.Text then
+        return tostring(refs.WaveText.Text)
+    end
+    return ""
+end
+
 local function GetDungeonWaveNumber(refs)
     refs = refs or GetDungeonUIRefs()
-    local raw = refs.WaveText and refs.WaveText.Text or ""
-    raw = tostring(raw)
+    local raw = GetDungeonWaveText(refs)
 
     local current = raw:match("(%d+)%s*/")
     if current then
@@ -4119,7 +4126,12 @@ local function Func_AutoDungeon()
         local dungeonTitleLower = dungeonTitle:lower()
         local startText = GetDungeonStartText(refs)
         local startLower = startText:lower()
+        local waveText = (GetDungeonWaveText(refs):match("^%s*(.-)%s*$") or "")
+        local waveTextUpper = waveText:upper()
         local isInfinite = dungeonTitleLower:find("infinite tower") ~= nil
+        local isNormalDungeon = inDungeon and not isInfinite
+        local isDiffScreen = isNormalDungeon and waveText == "???"
+        local isDungeonCleared = isNormalDungeon and waveTextUpper == "DUNGEON CLEARED!"
         local currentWave = GetDungeonWaveNumber(refs)
 
         if not inDungeon then
@@ -4127,15 +4139,33 @@ local function Func_AutoDungeon()
             Shared.DungeonDiffSent = false
             Shared.DungeonStartSent = false
             Shared.InfiniteHopHandled = false
+            Shared.DungeonRunActive = false
+            Shared.DungeonCompletionHandled = false
+            Shared.DungeonAtDiffScreen = false
         else
             if Shared.CurrentDungeonTitle ~= dungeonTitle then
                 Shared.CurrentDungeonTitle = dungeonTitle
                 Shared.DungeonDiffSent = false
                 Shared.DungeonStartSent = false
                 Shared.InfiniteHopHandled = false
+                Shared.DungeonRunActive = false
+                Shared.DungeonCompletionHandled = false
+                Shared.DungeonAtDiffScreen = false
             end
 
-            if Toggles.AutoDiff.Value and not isInfinite and not Shared.DungeonDiffSent and selectedDiff and Remotes.DungeonVote and (tick() - (Shared.LastDungeonVote or 0) > 1) then
+            if isDiffScreen then
+                if not Shared.DungeonAtDiffScreen then
+                    Shared.DungeonAtDiffScreen = true
+                    Shared.DungeonDiffSent = false
+                    Shared.DungeonStartSent = false
+                    Shared.DungeonRunActive = false
+                    Shared.DungeonCompletionHandled = false
+                end
+            else
+                Shared.DungeonAtDiffScreen = false
+            end
+
+            if Toggles.AutoDiff.Value and isDiffScreen and not Shared.DungeonDiffSent and selectedDiff and Remotes.DungeonVote and (tick() - (Shared.LastDungeonVote or 0) > 1) then
                 pcall(function()
                     Remotes.DungeonVote:FireServer(selectedDiff)
                 end)
@@ -4143,7 +4173,7 @@ local function Func_AutoDungeon()
                 Shared.DungeonDiffSent = true
             end
 
-            if Toggles.AutoDungeon.Value and startLower == "start" and Remotes.DungeonVote and (tick() - (Shared.LastDungeonStart or 0) > 1) then
+            if Toggles.AutoDungeon.Value and startLower == "start" and not Shared.DungeonStartSent and Remotes.DungeonVote and (tick() - (Shared.LastDungeonStart or 0) > 1) then
                 pcall(function()
                     Remotes.DungeonVote:FireServer("start")
                 end)
@@ -4167,32 +4197,24 @@ local function Func_AutoDungeon()
         if hasDungeonNPC then
             Shared.DungeonRunActive = true
             Shared.LastDungeonNPCSeen = tick()
-            Shared.DungeonCompletionHandled = false
-        end
-
-        local replayVisible = HasVisibleDungeonReplayUI()
-        local dungeonEnded = (not isInfinite) and (
-            replayVisible or (
-                Shared.DungeonRunActive and
-                not hasDungeonNPC and
-                (Shared.LastDungeonNPCSeen or 0) > 0 and
-                tick() - (Shared.LastDungeonNPCSeen or 0) > 8
-            )
-        )
-
-        if dungeonEnded and not Shared.DungeonCompletionHandled then
-            Shared.DungeonCompletionHandled = true
-            Shared.DungeonRunActive = false
-            IncrementDungeonCompleted()
-
-            if Toggles.AutoReplay.Value and Remotes.DungeonReplayVote and (tick() - (Shared.LastDungeonReplay or 0) > 2) then
-                pcall(function()
-                    Remotes.DungeonReplayVote:FireServer("sponsor")
-                end)
-                Shared.LastDungeonReplay = tick()
+            if not isDungeonCleared then
+                Shared.DungeonCompletionHandled = false
             end
         end
 
+        if isDungeonCleared and not Shared.DungeonCompletionHandled then
+            Shared.DungeonCompletionHandled = true
+            Shared.DungeonRunActive = false
+            Shared.DungeonStartSent = false
+            IncrementDungeonCompleted()
+        end
+
+        if Toggles.AutoReplay.Value and isNormalDungeon and Shared.DungeonCompletionHandled and not isDiffScreen and Remotes.DungeonReplayVote and (tick() - (Shared.LastDungeonReplay or 0) > 1) then
+            pcall(function()
+                Remotes.DungeonReplayVote:FireServer("sponsor")
+            end)
+            Shared.LastDungeonReplay = tick()
+        end
     end
 end
 
