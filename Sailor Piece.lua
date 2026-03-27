@@ -4130,8 +4130,8 @@ local function Func_AutoDungeon()
         local waveTextUpper = waveText:upper()
         local isInfinite = dungeonTitleLower:find("infinite tower") ~= nil
         local isNormalDungeon = inDungeon and not isInfinite
-        local isDiffScreen = isNormalDungeon and waveText == "???"
-        local isDungeonCleared = isNormalDungeon and waveTextUpper == "DUNGEON CLEARED!"
+        local isDiffScreen = isNormalDungeon and (waveText == "???" or waveTextUpper == "BOSS RUSH")
+		local isDungeonCleared = isNormalDungeon and (waveTextUpper == "DUNGEON CLEARED!" or waveTextUpper == "BOSS RUSH CLEARED!")
         local currentWave = GetDungeonWaveNumber(refs)
 
         if not inDungeon then
