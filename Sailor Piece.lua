@@ -4091,7 +4091,153 @@ local function GetDungeonWaveNumber(refs)
     return nil
 end
 
-local function IsGuiObjectActuallyVisible(obj)
+local function NormalizeDungeonName(str)
+    return tostring(str or ""):lower():gsub("[^%w]", "")
+end
+
+local function GetDungeonAliases(selected)
+    local normalized = NormalizeDungeonName(selected)
+    local aliasMap = {
+        ciddungeon = {"ciddungeon", "cid"},
+        runedungeon = {"runedungeon", "rune"},
+        doubledungeon = {"doubledungeon", "double"},
+        bossrush = {"bossrush", "bossrush", "boss"},
+        infinitetower = {"infinitetower", "infinite", "tower"},
+    }
+
+    return aliasMap[normalized] or {normalized}
+end
+
+local function GetExpectedDungeonPortalText(selected)
+    local textMap = {
+        CidDungeon = "Cid Dungeon",
+        RuneDungeon = "Rune Dungeon",
+        DoubleDungeon = "Double Dungeon",
+        BossRush = "Boss Rush",
+        InfiniteTower = "Infinite Tower",
+    }
+
+    return textMap[selected] or tostring(selected or "")
+end
+
+local IsGuiObjectActuallyVisible
+
+local function GetDungeonActionStartButton()
+    local actionUI = PGui:FindFirstChild("DungeonPortalActionUI")
+    local buttonContainer = actionUI and actionUI:FindFirstChild("ButtonContainer")
+    local startButton = buttonContainer and buttonContainer:FindFirstChild("StartButton")
+    return startButton
+end
+
+local function AutoPressDungeonActionStart()
+    local startButton = GetDungeonActionStartButton()
+    if not IsGuiObjectActuallyVisible(startButton) then
+        return false
+    end
+
+    local success = gsc(startButton)
+    if not success then
+        pcall(function()
+            fire_event(startButton.MouseButton1Click)
+        end)
+    end
+
+    return true
+end
+
+local function GetDungeonPortalObjectText(portal)
+    if not portal then
+        return ""
+    end
+
+    local prompt = portal:FindFirstChild("JoinPrompt", true)
+    if prompt then
+        local objectText = prompt.ObjectText
+        if objectText and objectText ~= "" then
+            return tostring(objectText)
+        end
+    end
+
+    return ""
+end
+
+local function IsCorrectDungeonPortal(portal, selected)
+    if not portal or not selected then
+        return false
+    end
+
+    local objectText = NormalizeDungeonName(GetDungeonPortalObjectText(portal))
+    local expectedText = NormalizeDungeonName(GetExpectedDungeonPortalText(selected))
+    if objectText ~= "" and expectedText ~= "" then
+        if objectText == expectedText then
+            return true
+        end
+
+        for _, alias in ipairs(GetDungeonAliases(selected)) do
+            if objectText == alias or objectText:find(alias, 1, true) then
+                return true
+            end
+        end
+
+        return false
+    end
+
+    local portalName = NormalizeDungeonName(portal.Name)
+    for _, alias in ipairs(GetDungeonAliases(selected)) do
+        if portalName == alias or portalName:find(alias, 1, true) then
+            return true
+        end
+    end
+
+    return false
+end
+
+local function GetBestDungeonPortal(selected)
+    local activePortal = workspace:FindFirstChild("ActiveDungeonPortal")
+    if activePortal and IsCorrectDungeonPortal(activePortal, selected) then
+        return activePortal
+    end
+
+    if selected == "InfiniteTower" then
+        local infiniteSpawn = workspace:FindFirstChild("InfiniteTowerPortalSpawn")
+        if infiniteSpawn then
+            return infiniteSpawn
+        end
+    end
+
+    local bestPortal, bestScore = nil, -1
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("BasePart") or obj:IsA("Model") then
+            local prompt = obj:FindFirstChild("JoinPrompt", true)
+            if prompt and IsCorrectDungeonPortal(obj, selected) then
+                local score = 0
+                local objectText = NormalizeDungeonName(GetDungeonPortalObjectText(obj))
+                local expectedText = NormalizeDungeonName(GetExpectedDungeonPortalText(selected))
+                if objectText ~= "" and objectText == expectedText then
+                    score = 200
+                else
+                    local objName = NormalizeDungeonName(obj.Name)
+                    for _, alias in ipairs(GetDungeonAliases(selected)) do
+                        if objName == alias then
+                            score = math.max(score, 100)
+                        elseif objName:find(alias, 1, true) then
+                            score = math.max(score, 75)
+                        end
+                    end
+                end
+
+                if score > bestScore then
+                    bestScore = score
+                    bestPortal = obj
+                end
+            end
+        end
+    end
+
+    return bestPortal
+end
+
+IsGuiObjectActuallyVisible = function(obj)
     if not obj or not obj:IsA("GuiObject") or not obj.Visible then
         return false
     end
@@ -4259,13 +4405,20 @@ end
 
 local function Func_AutoJoinDungeon()
     while Toggles.AutoJoinDungeon.Value do
-        task.wait(1)
-        
+        task.wait(0.5)
+
         local selected = Options.SelectedDungeon.Value
         if not selected then continue end
 
-        if PGui.DungeonPortalJoinUI.LeaveButton.Visible then 
-            continue 
+        if AutoPressDungeonActionStart() then
+            task.wait(0.5)
+            continue
+        end
+
+        local joinUI = PGui:FindFirstChild("DungeonPortalJoinUI")
+        local leaveButton = joinUI and joinUI:FindFirstChild("LeaveButton")
+        if leaveButton and leaveButton.Visible then
+            continue
         end
 
         local targetIsland = "Dungeon"
@@ -4279,27 +4432,50 @@ local function Func_AutoJoinDungeon()
             task.wait(1)
         end
 
-        if not PGui.DungeonPortalJoinUI.LeaveButton.Visible then
-            local portal = workspace:FindFirstChild("ActiveDungeonPortal")
+        if leaveButton and leaveButton.Visible then
+            continue
+        end
 
-            if not portal then
-                if Shared.Island ~= targetIsland then
-                    Remotes.TP_Portal:FireServer(targetIsland)
-                    Shared.Island = targetIsland
-                    task.wait(2.5)
-                end
-            else
-                local root = GetCharacter():FindFirstChild("HumanoidRootPart")
-                if root then
-                    root.CFrame = portal.CFrame
-                    task.wait(0.2)
-                    
-                    local prompt = portal:FindFirstChild("JoinPrompt")
-                    if prompt then
-                        fireproximityprompt(prompt)
-                        task.wait(1)
-                    end
-                end
+        local activePortal = workspace:FindFirstChild("ActiveDungeonPortal")
+        local hasCorrectActivePortal = activePortal and IsCorrectDungeonPortal(activePortal, selected)
+        local portal = GetBestDungeonPortal(selected)
+
+        if not portal then
+            if Shared.Island ~= targetIsland then
+                Remotes.TP_Portal:FireServer(targetIsland)
+                Shared.Island = targetIsland
+                task.wait(2.5)
+            end
+            continue
+        end
+
+        local char = GetCharacter()
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        if not root then
+            continue
+        end
+
+        local portalCF
+        if portal:IsA("Model") then
+            portalCF = portal:GetPivot()
+        else
+            portalCF = portal.CFrame
+        end
+
+        root.CFrame = portalCF
+        task.wait(0.2)
+
+        if hasCorrectActivePortal then
+            local prompt = activePortal:FindFirstChild("JoinPrompt", true)
+            if prompt then
+                fireproximityprompt(prompt)
+                task.wait(1)
+            end
+        elseif selected ~= "InfiniteTower" then
+            local prompt = portal:FindFirstChild("JoinPrompt", true)
+            if prompt then
+                fireproximityprompt(prompt)
+                task.wait(1)
             end
         end
     end
